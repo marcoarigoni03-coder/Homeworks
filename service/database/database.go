@@ -1,69 +1,56 @@
-/*
-Package database is the middleware between the app database and the code. All data (de)serialization (save/load) from a
-persistent database are handled here. Database specific logic should never escape this package.
-
-To use this package you need to apply migrations to the database if needed/wanted, connect to it (using the database
-data source name from config), and then initialize an instance of AppDatabase from the DB connection.
-
-For example, this code adds a parameter in `webapi` executable for the database data source name (add it to the
-main.WebAPIConfiguration structure):
-
-	DB struct {
-		Filename string `conf:""`
-	}
-
-This is an example on how to migrate the DB and connect to it:
-
-	// Start Database
-	logger.Println("initializing database support")
-	db, err := sql.Open("sqlite3", "./foo.db")
-	if err != nil {
-		logger.WithError(err).Error("error opening SQLite DB")
-		return fmt.Errorf("opening SQLite: %w", err)
-	}
-	defer func() {
-		logger.Debug("database stopping")
-		_ = db.Close()
-	}()
-
-Then you can initialize the AppDatabase and pass it to the api package.
-*/
 package database
 
 import (
 	"database/sql"
 	"errors"
 	"fmt"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
-// AppDatabase is the high level interface for the DB
+// AppDatabase è l'interfaccia principale per il tuo database.
 type AppDatabase interface {
-	GetName() (string, error)
-	SetName(name string) error
-
 	Ping() error
+
+	// Utenti
+	DoLogin(username string) (string, error)
+	SetMyUserName(identifier string, newName string) error
+
+	// Conversazioni e Messaggi
+	CreateConversation(ownerID string, otherUserID string) (string, error) // Chat 1-to-1
+	CreateGroup(ownerID string, groupName string) (string, error)          // Gruppo
+	GetMyConversations(userID string) ([]Conversation, error)
+	GetConversation(conversationID string, userID string) (Conversation, []Message, error)
+	
+	// Messaggistica
+	SendMessage(conversationID string, senderID string, content string) (Message, error)
 }
 
 type appdbimpl struct {
 	c *sql.DB
 }
 
-// New returns a new instance of AppDatabase based on the SQLite connection `db`.
-// `db` is required - an error will be returned if `db` is `nil`.
-func New(db *sql.DB) (AppDatabase, error) {
-	if db == nil {
-		return nil, errors.New("database is required when building a AppDatabase")
+func New(dbPath string) (AppDatabase, error) {
+	if dbPath == "" {
+		return nil, errors.New("path del database richiesto")
 	}
 
-	// Check if table exists. If not, the database is empty, and we need to create the structure
-	var tableName string
-	err := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='example_table';`).Scan(&tableName)
-	if errors.Is(err, sql.ErrNoRows) {
-		sqlStmt := `CREATE TABLE example_table (id INTEGER NOT NULL PRIMARY KEY, name TEXT);`
-		_, err = db.Exec(sqlStmt)
-		if err != nil {
-			return nil, fmt.Errorf("error creating database structure: %w", err)
-		}
+	db, err := sql.Open("sqlite3", dbPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+
+	// Abilita Foreign Keys (cruciale!)
+	if _, err := db.Exec(`PRAGMA foreign_keys = ON;`); err != nil {
+		return nil, fmt.Errorf("error setting pragmas: %w", err)
+	}
+
+	if err := createTables(db); err != nil {
+		return nil, fmt.Errorf("error creating database structure: %w", err)
 	}
 
 	return &appdbimpl{
@@ -73,4 +60,47 @@ func New(db *sql.DB) (AppDatabase, error) {
 
 func (db *appdbimpl) Ping() error {
 	return db.c.Ping()
+}
+
+func createTables(db *sql.DB) error {
+	// 1. Tabella USERS
+	usersTable := `CREATE TABLE IF NOT EXISTS users (
+		identifier TEXT NOT NULL PRIMARY KEY,
+		username TEXT NOT NULL UNIQUE
+	);`
+	if _, err := db.Exec(usersTable); err != nil { return err }
+
+	// 2. Tabella CONVERSATIONS
+	conversationsTable := `CREATE TABLE IF NOT EXISTS conversations (
+		id TEXT NOT NULL PRIMARY KEY,
+		name TEXT, 
+		is_group BOOLEAN NOT NULL DEFAULT 0,
+		photo TEXT
+	);`
+	if _, err := db.Exec(conversationsTable); err != nil { return err }
+
+	// 3. Tabella PARTICIPANTS (chi sta in quale chat)
+	participantsTable := `CREATE TABLE IF NOT EXISTS participants (
+		conversation_id TEXT NOT NULL,
+		user_id TEXT NOT NULL,
+		PRIMARY KEY (conversation_id, user_id),
+		FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+		FOREIGN KEY (user_id) REFERENCES users(identifier) ON DELETE CASCADE
+	);`
+	if _, err := db.Exec(participantsTable); err != nil { return err }
+
+	// 4. Tabella MESSAGES
+	messagesTable := `CREATE TABLE IF NOT EXISTS messages (
+		id TEXT NOT NULL PRIMARY KEY,
+		conversation_id TEXT NOT NULL,
+		sender_id TEXT NOT NULL,
+		content TEXT NOT NULL,
+		timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+		status INTEGER DEFAULT 1,
+		FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+		FOREIGN KEY (sender_id) REFERENCES users(identifier) ON DELETE CASCADE
+	);`
+	if _, err := db.Exec(messagesTable); err != nil { return err }
+
+	return nil
 }

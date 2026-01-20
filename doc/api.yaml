@@ -2,415 +2,622 @@ openapi: 3.0.0
 servers:
   - url: "http://localhost:3000"
 info:
-  title: Fantastic Coffee (decaffeinated)
-  description: Fantastic Coffee (decaffeinated), the skeleton project for Web and Software architecture course
+  title: WASAText
+  description: API specification for the WASAText project (Web and Software Architecture).
   version: 1.0.0
 
+# Definizione dei tag per raggruppare le chiamate nella documentazione
 tags:
-  - name: General
-    description: General purpose endpoints
-  - name: Group 1
-    description: First group of example endpoints
-  - name: Group 2
-    description: Second group of example endpoints
-  - name: Cat pictures
-    description: Endpoints related to images
-  - name: Autofeeder
-    description: IoT device management
-  - name: Session management
-    description: Authentication endpoints
+  - name: Status
+    description: System status endpoints
+  - name: Auth
+    description: Simplified authentication (Login)
+  - name: User
+    description: User profile management
+  - name: Conversations
+    description: Chat management (Direct and Groups)
+  - name: Messages
+    description: Message handling
+  - name: Groups
+    description: Specific group management
+
+# Sicurezza globale: Bearer Token richiesto ovunque tranne dove sovrascritto (es. login)
+security:
+  - bearerAuth: []
 
 paths:
+  # --- System Status ---
   /status:
-    parameters:
-      - $ref: "#/components/parameters/XAppBuild"
-      - $ref: "#/components/parameters/XAppVersion"
-      - $ref: "#/components/parameters/XAppLanguage"
-      - $ref: "#/components/parameters/XAppPlatform"
     get:
-      tags: ["General"]
-      operationId: getStatusMessage
-      summary: Get status message for the user about issues / updates
-      description: |-
-        The response contains a status message meant for the user. It might
-        contains information about current technical issues, update messages
-        or general information.
+      tags: ["Status"]
+      summary: Returns the current status of the server
+      operationId: getStatus
+      security: [] # Endpoint pubblico
       responses:
-        "200":
-          description: Status message available
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/StatusInfo"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /:
-    get:
-      tags: ["Group 1"]
-      operationId: index
-      summary: Get an index
-      description: |-
-        This is an example of an index API description
-      responses:
-        "200":
-          description: Successful
+        '200':
+          description: Server is running correctly
           content:
             application/json:
               schema:
                 type: object
-                description: Empty confirmation object
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+                properties:
+                  status:
+                    type: string
+                    description: Server status message
+                    example: "alive"
+                    pattern: "^[a-z]+$"
+                    minLength: 1
+                    maxLength: 20
 
-  /context:
-    parameters:
-      - $ref: "#/components/parameters/XAppBuild"
-      - $ref: "#/components/parameters/XAppVersion"
-      - $ref: "#/components/parameters/XAppLanguage"
-      - $ref: "#/components/parameters/XAppPlatform"
+  # --- Authentication (Simplified Login) ---
+  /session:
     post:
-      tags: ["Group 1"]
-      operationId: getContext
-      summary: Another API example
-      description: |-
-        Example description 2
-      responses:
-        "200":
-          description: Request ok
-          headers:
-            X-Access-Token:
-              description: Access token for authenticated requests
-              schema:
-                type: string
-                pattern: "^.*$"
-                minLength: 1
-                maxLength: 1024
-          content:
-            application/json:
-              schema:
-                type: object
-                description: Context response data
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /authenticated:
-    parameters:
-      - $ref: "#/components/parameters/XAppBuild"
-      - $ref: "#/components/parameters/XAppVersion"
-      - $ref: "#/components/parameters/XAppLanguage"
-      - $ref: "#/components/parameters/XAppPlatform"
-    get:
-      tags: ["Group 2"]
-      operationId: getAuthenticatedExample
-      summary: Get an endpoint with authentication
-      description: |-
-        Get an endpoint with auth
-      security:
-        - LegacyAuth: []
-        - AppToken: []
-      responses:
-        "200":
-          description: Logout successful
-          content:
-            application/json:
-              schema:
-                type: object
-                description: Success message
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /pictures/{cat}:
-    parameters:
-      - $ref: "#/components/parameters/XAppBuild"
-      - $ref: "#/components/parameters/XAppVersion"
-      - $ref: "#/components/parameters/XAppLanguage"
-      - $ref: "#/components/parameters/XAppPlatform"
-      - $ref: "#/components/parameters/cat"
-    get:
-      tags: ["Cat pictures"]
-      operationId: getCatFromPicture
-      summary: Example of a parameter in URL
-      description: |-
-        Example of a parameter in URL
-      security:
-        - LegacyAuth: []
-      responses:
-        "200":
-          description: Student picture found
-          content:
-            image/png:
-              schema:
-                type: string
-                format: binary
-                description: Binary image data
-                minLength: 1
-                maxLength: 10485760 # 10MB limit example
-                pattern: "^.*$"
-              example: Picture binary file
-        "404":
-          description: Student picture not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /autofeeder/{cat}:
-    parameters:
-      - $ref: "#/components/parameters/XAppBuild"
-      - $ref: "#/components/parameters/XAppVersion"
-      - $ref: "#/components/parameters/XAppLanguage"
-      - $ref: "#/components/parameters/XAppPlatform"
-      - $ref: "#/components/parameters/cat"
-    put:
-      tags: ["Autofeeder"]
-      operationId: createCatAutofeeder
-      summary: Example of PUT operation
-      description: Enable the autofeeder for a specific cat
-      security:
-        - LegacyAuth: []
-      responses:
-        "200":
-          description: Auto feed enabled
-          content:
-            application/json:
-              schema:
-                type: object
-                description: Confirmation
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-    delete:
-      tags: ["Autofeeder"]
-      operationId: deleteCatAutofeeder
-      summary: Example of DELETE operation
-      description: Disable the autofeeder for a specific cat
-      security:
-        - LegacyAuth: []
-      responses:
-        "200":
-          description: Auto feed disabled
-          content:
-            application/json:
-              schema:
-                type: object
-                description: Confirmation
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /session/login:
-    parameters:
-      - $ref: "#/components/parameters/XAppBuild"
-      - $ref: "#/components/parameters/XAppVersion"
-      - $ref: "#/components/parameters/XAppLanguage"
-      - $ref: "#/components/parameters/XAppPlatform"
-    post:
-      tags: ["Session management"]
-      operationId: login
-      summary: Log-in into system
-      description: |-
-        Perform a log-in action using username and password credentials.
-        Returns a token which can be used in authenticated requests.
+      tags: ["Auth"]
+      summary: Logs in the user (Simplified)
+      description: >
+        If the username exists, logs in. If not, registers and logs in.
+        Returns the user identifier to use as Bearer token.
+      operationId: doLogin
+      security: [] # Endpoint pubblico
       requestBody:
+        description: User details (username only)
+        required: true
         content:
-          application/x-www-form-urlencoded:
+          application/json:
             schema:
               type: object
-              description: Login credentials
+              required:
+                - name
               properties:
-                userid:
+                name:
                   type: string
-                  description: The user identifier
-                  pattern: '^[a-zA-Z0-9]+$'
+                  description: The username to login with
+                  example: Maria
                   minLength: 3
-                  maxLength: 255
-                password:
-                  type: string
-                  description: The user password
-                  pattern: '^.*?$'
-                  minLength: 8
-                  maxLength: 255
+                  maxLength: 16
+                  pattern: "^[a-zA-Z0-9]+$"
       responses:
-        "200":
-          description: Login successful
-          headers:
-            X-Access-Token:
-              description: Access token for authenticated requests
-              schema:
-                type: string
-                pattern: "^.*$"
-                minLength: 1
-                maxLength: 1024
+        '201':
+          description: User log-in action successful
           content:
             application/json:
               schema:
                 type: object
-                description: Login response body
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "403":
-          description: Login failed
-          headers:
-            X-Message:
-              description: Error message
-              schema:
-                type: string
-                pattern: "^.*$"
-                minLength: 1
-                maxLength: 255
+                required:
+                  - identifier
+                properties:
+                  identifier:
+                    type: string
+                    description: The user ID to be used as Bearer token
+                    example: "u123456"
+                    minLength: 1
+                    maxLength: 64
+                    pattern: "^[a-zA-Z0-9_-]+$"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # --- User Profile ---
+  /users/me/name:
+    put:
+      tags: ["User"]
+      summary: Update my username
+      operationId: setMyUserName
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  description: New username
+                  minLength: 3
+                  maxLength: 16
+                  pattern: "^[a-zA-Z0-9]+$"
+      responses:
+        '200':
+          description: Username updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+                type: object
+                description: Empty success response
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/me/photo:
+    put:
+      tags: ["User"]
+      summary: Update my profile photo
+      operationId: setMyPhoto
+      requestBody:
+        required: true
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+              description: The photo image data
+              minLength: 1
+              maxLength: 10485760 # Max 10MB
+              pattern: "^.*$"
+      responses:
+        '200':
+          description: Photo updated
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Empty success response
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # --- Conversations ---
+  /conversations:
+    get:
+      tags: ["Conversations"]
+      summary: Get list of conversations
+      operationId: getMyConversations
+      responses:
+        '200':
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConversationSummary'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /conversations/{conversationId}:
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
+    get:
+      tags: ["Conversations"]
+      summary: Get specific conversation details and messages
+      operationId: getConversation
+      responses:
+        '200':
+          description: Conversation details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # --- Messaging ---
+  /conversations/{conversationId}/messages:
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
+    post:
+      tags: ["Messages"]
+      summary: Send a message
+      operationId: sendMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  description: Message text
+                  minLength: 1
+                  maxLength: 2000
+                  pattern: "^.*$"
+      responses:
+        '201':
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /conversations/{conversationId}/messages/{messageId}:
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
+      - $ref: '#/components/parameters/MessageId'
+    delete:
+      tags: ["Messages"]
+      summary: Delete a message
+      operationId: deleteMessage
+      responses:
+        '204':
+          description: Message deleted
+        '403':
+          description: Forbidden (not your message)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /conversations/{conversationId}/messages/forward:
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
+    post:
+      tags: ["Messages"]
+      summary: Forward a message
+      operationId: forwardMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - messageId
+              properties:
+                messageId:
+                  type: string
+                  description: ID of message to forward
+                  minLength: 1
+                  maxLength: 64
+                  pattern: "^[a-zA-Z0-9_-]+$"
+      responses:
+        '201':
+          description: Message forwarded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # --- Reactions ---
+  /conversations/{conversationId}/messages/{messageId}/comment:
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
+      - $ref: '#/components/parameters/MessageId'
+    put:
+      tags: ["Messages"]
+      summary: React to a message
+      operationId: commentMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - emoji
+              properties:
+                emoji:
+                  type: string
+                  description: The emoji character
+                  minLength: 1
+                  maxLength: 4
+                  pattern: "^.*$"
+      responses:
+        '200':
+          description: Reaction added
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Success
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: ["Messages"]
+      summary: Remove reaction
+      operationId: uncommentMessage
+      responses:
+        '204':
+          description: Reaction removed
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # --- Groups ---
+  /groups/{groupId}/members:
+    parameters:
+      - $ref: '#/components/parameters/GroupId'
+    put:
+      tags: ["Groups"]
+      summary: Add user to group
+      operationId: addToGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                userId:
+                  type: string
+                  description: User ID to add
+                  minLength: 1
+                  maxLength: 64
+                  pattern: "^[a-zA-Z0-9_-]+$"
+      responses:
+        '200':
+          description: User added
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Success
+        '403':
+          description: Not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /groups/{groupId}/members/me:
+    parameters:
+      - $ref: '#/components/parameters/GroupId'
+    delete:
+      tags: ["Groups"]
+      summary: Leave a group
+      operationId: leaveGroup
+      responses:
+        '204':
+          description: Left group
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /groups/{groupId}/name:
+    parameters:
+      - $ref: '#/components/parameters/GroupId'
+    put:
+      tags: ["Groups"]
+      summary: Set group name
+      operationId: setGroupName
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  description: New group name
+                  minLength: 3
+                  maxLength: 30
+                  pattern: "^.*$"
+      responses:
+        '200':
+          description: Name updated
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Success
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /groups/{groupId}/photo:
+    parameters:
+      - $ref: '#/components/parameters/GroupId'
+    put:
+      tags: ["Groups"]
+      summary: Set group photo
+      operationId: setGroupPhoto
+      requestBody:
+        required: true
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+              description: Photo data
+              minLength: 1
+              maxLength: 10485760
+              pattern: "^.*$"
+      responses:
+        '200':
+          description: Photo updated
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Success
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
 components:
-  schemas:
-    StatusInfo:
-      title: Status Info
-      description: Information about the server status
-      type: object
-      properties:
-        status:
-          type: string
-          description: The status code
-          pattern: "^[a-z]*$"
-          minLength: 0
-          maxLength: 20
-          enum:
-            - info
-            - warning
-            - critical
-            - ""
-        title:
-          type: string
-          description: A brief title for the status
-          pattern: "^.*$"
-          minLength: 0
-          maxLength: 100
-        message:
-          type: string
-          description: Detailed status message
-          pattern: "^.*$"
-          minLength: 0
-          maxLength: 500
-        url:
-          type: string
-          description: URL for more info
-          pattern: "^.*$"
-          minLength: 0
-          maxLength: 2048
-
-    ErrorResponse:
-      title: Generic Error
-      description: Standard error response schema
-      type: object
-      properties:
-        message:
-          type: string
-          description: Human readable error description
-          pattern: "^.*$"
-          minLength: 1
-          maxLength: 500
-        code:
-          type: integer
-          description: Internal error code
-
-  responses:
-    Unauthorized:
-      description: The access token is missing or it's expired
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/ErrorResponse"
-    BadRequest:
-      description: The request was not compliant with the documentation (eg. missing fields, etc)
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/ErrorResponse"
-    InternalServerError:
-      description: The server encountered an internal error. Further info in server logs
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/ErrorResponse"
-
   securitySchemes:
-    LegacyAuth:
-      type: apiKey
-      in: header
-      name: X-App-Token
-      description: |-
-        App session token value. This value is sent by the server in the login
-        and session refresh APIs.
-    AppToken:
-      type: apiKey
-      in: header
-      name: X-Access-Token
-      description: New bearer token authentication
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Enter your userId here (from /session)
 
   parameters:
-    XAppVersion:
-      schema:
-        type: string
-        pattern: '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$'
-        minLength: 1
-        maxLength: 20
-      name: X-App-Version
-      in: header
-      required: true
-      description: App human readable version ("semantic version" format)
-      allowEmptyValue: false
-    XAppBuild:
-      schema:
-        type: integer
-      name: X-App-Build
-      in: header
-      required: true
-      description: App build number
-      allowEmptyValue: false
-    XAppLanguage:
-      schema:
-        type: string
-        pattern: '^[a-z]{2}([-_][A-Z]{2})?$'
-        minLength: 2
-        maxLength: 5
-      name: X-App-Language
-      in: header
-      required: true
-      description: App language in ISO 639-1 format
-      allowEmptyValue: false
-    XAppPlatform:
-      schema:
-        type: string
-        enum: [ios, android]
-        pattern: "^[a-z]+$"
-        minLength: 3
-        maxLength: 10
-      name: X-App-Platform
-      in: header
-      required: true
-      description: App operating system / platform
-      allowEmptyValue: false
-    cat:
-      schema:
-        type: string
-        pattern: '^[a-zA-Z]+$'
-        minLength: 3
-        maxLength: 10
-      name: cat
+    ConversationId:
+      name: conversationId
       in: path
       required: true
-      description: Cat identifier
-      allowEmptyValue: false
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 64
+        pattern: "^[a-zA-Z0-9_-]+$"
+    MessageId:
+      name: messageId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 64
+        pattern: "^[a-zA-Z0-9_-]+$"
+    GroupId:
+      name: groupId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 64
+        pattern: "^[a-zA-Z0-9_-]+$"
+
+  schemas:
+    ErrorResponse:
+      type: object
+      description: Standard error wrapper
+      properties:
+        message:
+          type: string
+          description: Error details
+          minLength: 1
+          maxLength: 500
+          pattern: "^.*$"
+
+    ConversationSummary:
+      type: object
+      description: Summary for list view
+      properties:
+        conversationId:
+          type: string
+          description: ID of conversation
+          minLength: 1
+          maxLength: 64
+          pattern: "^[a-zA-Z0-9_-]+$"
+        name:
+          type: string
+          description: Name of user or group
+          minLength: 1
+          maxLength: 50
+          pattern: "^.*$"
+        photo:
+          type: string
+          format: byte
+          description: Base64 preview or null
+          minLength: 0
+          maxLength: 100000
+          pattern: "^.*$"
+        lastMessage:
+          $ref: '#/components/schemas/Message'
+        isGroup:
+          type: boolean
+          description: True if group chat
+        unreadCount:
+          type: integer
+          description: Number of unread messages
+
+    ConversationDetail:
+      type: object
+      description: Full conversation details
+      properties:
+        conversationId:
+          type: string
+          description: ID
+          minLength: 1
+          maxLength: 64
+          pattern: "^[a-zA-Z0-9_-]+$"
+        name:
+          type: string
+          description: Name
+          minLength: 1
+          maxLength: 50
+          pattern: "^.*$"
+        members:
+          type: array
+          description: List of member IDs
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: "^[a-zA-Z0-9_-]+$"
+        messages:
+          type: array
+          description: List of messages
+          items:
+            $ref: '#/components/schemas/Message'
+
+    Message:
+      type: object
+      description: A single message
+      properties:
+        messageId:
+          type: string
+          description: Unique ID
+          minLength: 1
+          maxLength: 64
+          pattern: "^[a-zA-Z0-9_-]+$"
+        senderId:
+          type: string
+          description: Who sent it
+          minLength: 1
+          maxLength: 64
+          pattern: "^[a-zA-Z0-9_-]+$"
+        content:
+          type: string
+          description: Text content
+          minLength: 0
+          maxLength: 2000
+          pattern: "^.*$"
+        timestamp:
+          type: string
+          format: date-time
+          description: When it was sent
+          minLength: 1
+          maxLength: 50
+          pattern: "^.*$"
+        status:
+          type: integer
+          description: 1=received, 2=read
+          enum: [1, 2]
+        reactions:
+          type: array
+          description: Reactions on this message
+          items:
+            type: object
+            properties:
+              user:
+                type: string
+                description: Who reacted
+                minLength: 1
+                maxLength: 64
+                pattern: "^[a-zA-Z0-9_-]+$"
+              emoji:
+                type: string
+                description: The emoji
+                minLength: 1
+                maxLength: 4
+                pattern: "^.*$"
+
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalServerError:
+      description: Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

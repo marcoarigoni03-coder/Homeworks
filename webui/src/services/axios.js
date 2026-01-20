@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const instance = axios.create({
-	baseURL: __API_URL__,
+	baseURL: "http://localhost:3000", // Punta al tuo backend Go
 	timeout: 1000 * 5
 });
 

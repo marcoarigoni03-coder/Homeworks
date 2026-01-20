@@ -1,70 +1,31 @@
-/*
-Package api exposes the main API engine. All HTTP APIs are handled here - so-called "business logic" should be here, or
-in a dedicated package (if that logic is complex enough).
-
-To use this package, you should create a new instance with New() passing a valid Config. The resulting Router will have
-the Router.Handler() function that returns a handler that can be used in a http.Server (or in other middlewares).
-
-Example:
-
-	// Create the API router
-	apirouter, err := api.New(api.Config{
-		Logger:   logger,
-		Database: appdb,
-	})
-	if err != nil {
-		logger.WithError(err).Error("error creating the API server instance")
-		return fmt.Errorf("error creating the API server instance: %w", err)
-	}
-	router := apirouter.Handler()
-
-	// ... other stuff here, like middleware chaining, etc.
-
-	// Create the API server
-	apiserver := http.Server{
-		Addr:              cfg.Web.APIHost,
-		Handler:           router,
-		ReadTimeout:       cfg.Web.ReadTimeout,
-		ReadHeaderTimeout: cfg.Web.ReadTimeout,
-		WriteTimeout:      cfg.Web.WriteTimeout,
-	}
-
-	// Start the service listening for requests in a separate goroutine
-	apiserver.ListenAndServe()
-
-See the `main.go` file inside the `cmd/webapi` for a full usage example.
-*/
 package api
 
 import (
+	"embed"
 	"errors"
-	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/database"
-	"github.com/julienschmidt/httprouter"
-	"github.com/sirupsen/logrus"
 	"net/http"
+	"path/filepath"
+	"strings"
+
+	"github.com/julienschmidt/httprouter"
+	"github.com/marcoarigoni03-coder/Homeworks/service/database"
+	"github.com/sirupsen/logrus"
 )
 
-// Config is used to provide dependencies and configuration to the New function.
-type Config struct {
-	// Logger where log entries are sent
-	Logger logrus.FieldLogger
+//go:embed dist/*
+var frontendEmbed embed.FS
 
-	// Database is the instance of database.AppDatabase where data are saved
+type Config struct {
+	Logger   logrus.FieldLogger
 	Database database.AppDatabase
 }
 
-// Router is the package API interface representing an API handler builder
 type Router interface {
-	// Handler returns an HTTP handler for APIs provided in this package
 	Handler() http.Handler
-
-	// Close terminates any resource used in the package
 	Close() error
 }
 
-// New returns a new Router instance
 func New(cfg Config) (Router, error) {
-	// Check if the configuration is correct
 	if cfg.Logger == nil {
 		return nil, errors.New("logger is required")
 	}
@@ -72,25 +33,90 @@ func New(cfg Config) (Router, error) {
 		return nil, errors.New("database is required")
 	}
 
-	// Create a new router where we will register HTTP endpoints. The server will pass requests to this router to be
-	// handled.
 	router := httprouter.New()
 	router.RedirectTrailingSlash = false
 	router.RedirectFixedPath = false
 
-	return &_router{
+	rt := &_router{
 		router:     router,
 		baseLogger: cfg.Logger,
 		db:         cfg.Database,
-	}, nil
+	}
+
+	rt.registerRoutes()
+	return rt, nil
 }
 
 type _router struct {
-	router *httprouter.Router
-
-	// baseLogger is a logger for non-requests contexts, like goroutines or background tasks not started by a request.
-	// Use context logger if available (e.g., in requests) instead of this logger.
+	router     *httprouter.Router
 	baseLogger logrus.FieldLogger
+	db         database.AppDatabase
+}
 
-	db database.AppDatabase
+func (rt *_router) Handler() http.Handler {
+	return rt.router
+}
+
+func (rt *_router) Close() error {
+	return nil
+}
+
+func (rt *_router) registerRoutes() {
+	// --- API ROUTES ---
+	rt.router.GET("/status", rt.getStatus)
+	rt.router.POST("/session", rt.doLogin)
+	rt.router.PUT("/users/me/name", rt.setMyUserName)
+	rt.router.GET("/conversations", rt.getMyConversations)
+	rt.router.GET("/conversations/:conversationId", rt.getConversation)
+	rt.router.POST("/conversations/:conversationId/messages", rt.sendMessage)
+
+	// --- GESTORE UNIVERSALE FILE STATICI ---
+	// Gestisce TUTTO quello che non è una rotta API (Assets, Bootstrap, Immagini, Favicon)
+	rt.router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		// 1. Cerchiamo se esiste un file fisico corrispondente alla richiesta
+		// Es: richiesta "/bootstrap.css" -> cerchiamo "dist/bootstrap.css"
+		path := r.URL.Path
+		if strings.HasPrefix(path, "/") {
+			path = path[1:] // Rimuovi lo slash iniziale
+		}
+		fullPath := "dist/" + path
+
+		fileData, err := frontendEmbed.ReadFile(fullPath)
+
+		if err == nil {
+			// --- FILE TROVATO! Serviamolo col tipo giusto ---
+			ext := strings.ToLower(filepath.Ext(fullPath))
+			switch ext {
+			case ".css":
+				w.Header().Set("Content-Type", "text/css")
+			case ".js":
+				w.Header().Set("Content-Type", "application/javascript")
+			case ".png":
+				w.Header().Set("Content-Type", "image/png")
+			case ".jpg", ".jpeg":
+				w.Header().Set("Content-Type", "image/jpeg")
+			case ".svg":
+				w.Header().Set("Content-Type", "image/svg+xml")
+			case ".json":
+				w.Header().Set("Content-Type", "application/json")
+			case ".ico":
+				w.Header().Set("Content-Type", "image/x-icon")
+			default:
+				w.Header().Set("Content-Type", "text/plain")
+			}
+			w.Write(fileData)
+			return
+		}
+
+		// 2. FILE NON TROVATO -> È una rotta frontend (es: /profile), serviamo index.html
+		htmlData, err := frontendEmbed.ReadFile("dist/index.html")
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("ERRORE CRITICO: Cartella 'dist' non trovata o vuota."))
+			return
+		}
+		w.Header().Set("Content-Type", "text/html")
+		w.Write(htmlData)
+	})
 }
