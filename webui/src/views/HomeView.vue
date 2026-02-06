@@ -21,6 +21,7 @@ export default {
 			profileName: '',
 			profilePhoto: '',
 			profilePhotoFileName: '',
+			profileDirty: false,
 			groupEditName: '',
 			groupEditPhoto: '',
 			groupPhotoFileName: '',
@@ -87,8 +88,10 @@ export default {
 				this.$axios.get('/api/conversations', this.api()),
 			])
 			this.me = me.data
-			this.profileName = me.data.displayName
-			this.profilePhoto = me.data.photo
+			if (!this.profileDirty) {
+				this.profileName = me.data.displayName
+				this.profilePhoto = me.data.photo
+			}
 			this.users = users.data
 			this.conversations = conversations.data
 			if (this.selectedConversationId) {
@@ -160,6 +163,7 @@ export default {
 				photo: this.profilePhoto,
 			}, this.api())
 			this.profilePhotoFileName = ''
+			this.profileDirty = false
 			await this.refreshAll()
 		},
 		async updateGroup() {
@@ -192,12 +196,14 @@ export default {
 			const reader = new FileReader()
 			reader.onload = () => {
 				this.profilePhoto = typeof reader.result === 'string' ? reader.result : ''
+				this.profileDirty = true
 			}
 			reader.readAsDataURL(file)
 		},
 		clearProfilePhoto() {
 			this.profilePhoto = ''
 			this.profilePhotoFileName = ''
+			this.profileDirty = true
 		},
 		onGroupPhotoChange(e) {
 			const file = e.target.files && e.target.files[0]
@@ -281,8 +287,8 @@ export default {
 
 					<div class="panel-card">
 						<div class="section-title">Profilo</div>
-						<input class="tx-input small" v-model="profileName" placeholder="Nuovo nome" />
-						<input class="tx-input small" v-model="profilePhoto" placeholder="URL/base64 foto" />
+						<input class="tx-input small" v-model="profileName" placeholder="Nuovo nome" @input="profileDirty = true" />
+						<input class="tx-input small" v-model="profilePhoto" placeholder="URL/base64 foto" @input="profileDirty = true" />
 						<div class="image-upload-wrap">
 							<input class="tx-input" type="file" accept="image/*" @change="onProfilePhotoChange" />
 							<small class="muted" v-if="profilePhotoFileName">{{ profilePhotoFileName }}</small>
