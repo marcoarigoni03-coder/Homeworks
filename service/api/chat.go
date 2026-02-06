@@ -107,7 +107,7 @@ func (rt *_router) login(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	}
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"token": token,
-		"user": userDTO{ID: uid, Username: username, DisplayName: dn, Photo: photo},
+		"user":  userDTO{ID: uid, Username: username, DisplayName: dn, Photo: photo},
 	})
 }
 
@@ -155,6 +155,27 @@ func (rt *_router) updateMe(w http.ResponseWriter, r *http.Request, _ httprouter
 	}
 	if _, err := rt.db.Conn().Exec(`UPDATE users SET display_name=COALESCE(NULLIF(?,''),display_name), photo=COALESCE(?,photo) WHERE id=?`, strings.TrimSpace(body.DisplayName), body.Photo, u.ID); err != nil {
 		writeJSON(w, http.StatusInternalServerError, apiError{Error: "errore update"})
+		return
+	}
+	rt.getMe(w, r, httprouter.Params{}, reqcontext.RequestContext{})
+}
+
+// QUESTA È UNA TUA AGGIUNTA (MANTENUTA)
+func (rt *_router) updateMyPhoto(w http.ResponseWriter, r *http.Request, _ httprouter.Params, _ reqcontext.RequestContext) {
+	u, err := rt.authUser(r)
+	if err != nil {
+		writeJSON(w, http.StatusUnauthorized, apiError{Error: err.Error()})
+		return
+	}
+	var body struct {
+		Photo string `json:"photo"`
+	}
+	if err := readJSON(r, &body); err != nil || strings.TrimSpace(body.Photo) == "" {
+		writeJSON(w, http.StatusBadRequest, apiError{Error: "photo richiesta"})
+		return
+	}
+	if _, err := rt.db.Conn().Exec(`UPDATE users SET photo=? WHERE id=?`, strings.TrimSpace(body.Photo), u.ID); err != nil {
+		writeJSON(w, http.StatusInternalServerError, apiError{Error: "errore update foto"})
 		return
 	}
 	rt.getMe(w, r, httprouter.Params{}, reqcontext.RequestContext{})
@@ -552,6 +573,32 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 	writeJSON(w, http.StatusCreated, map[string]int64{"messageId": id})
 }
 
+// QUESTA È UNA TUA AGGIUNTA (MANTENUTA)
+func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, _ reqcontext.RequestContext) {
+	me, err := rt.authUser(r)
+	if err != nil {
+		writeJSON(w, http.StatusUnauthorized, apiError{Error: err.Error()})
+		return
+	}
+	msgID, _ := strconv.ParseInt(ps.ByName("id"), 10, 64)
+	var senderID int64
+	if err := rt.db.Conn().QueryRow(`SELECT sender_id FROM messages WHERE id=?`, msgID).Scan(&senderID); err != nil {
+		writeJSON(w, http.StatusNotFound, apiError{Error: "messaggio non trovato"})
+		return
+	}
+	if senderID != me.ID {
+		writeJSON(w, http.StatusForbidden, apiError{Error: "non autorizzato a eliminare"})
+		return
+	}
+	_, _ = rt.db.Conn().Exec(`DELETE FROM reactions WHERE message_id=?`, msgID)
+	_, _ = rt.db.Conn().Exec(`DELETE FROM message_reads WHERE message_id=?`, msgID)
+	if _, err := rt.db.Conn().Exec(`DELETE FROM messages WHERE id=?`, msgID); err != nil {
+		writeJSON(w, http.StatusInternalServerError, apiError{Error: "errore eliminazione"})
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params, _ reqcontext.RequestContext) {
 	me, err := rt.authUser(r)
 	if err != nil {
@@ -620,6 +667,37 @@ func (rt *_router) updateConversation(w http.ResponseWriter, r *http.Request, ps
 	_, err = rt.db.Conn().Exec(`UPDATE conversations SET name=COALESCE(NULLIF(?,''),name), photo=COALESCE(?,photo) WHERE id=?`, strings.TrimSpace(body.Name), body.Photo, convID)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, apiError{Error: fmt.Sprintf("errore update gruppo: %v", err)})
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// QUESTA È UNA TUA AGGIUNTA (MANTENUTA)
+func (rt *_router) updateGroupPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params, _ reqcontext.RequestContext) {
+	me, err := rt.authUser(r)
+	if err != nil {
+		writeJSON(w, http.StatusUnauthorized, apiError{Error: err.Error()})
+		return
+	}
+	convID, _ := strconv.ParseInt(ps.ByName("id"), 10, 64)
+	if !rt.isMember(convID, me.ID) {
+		writeJSON(w, http.StatusForbidden, apiError{Error: "non sei membro"})
+		return
+	}
+	var isg int
+	if err := rt.db.Conn().QueryRow(`SELECT is_group FROM conversations WHERE id=?`, convID).Scan(&isg); err != nil || isg != 1 {
+		writeJSON(w, http.StatusBadRequest, apiError{Error: "non è un gruppo"})
+		return
+	}
+	var body struct {
+		Photo string `json:"photo"`
+	}
+	if err := readJSON(r, &body); err != nil || strings.TrimSpace(body.Photo) == "" {
+		writeJSON(w, http.StatusBadRequest, apiError{Error: "photo richiesta"})
+		return
+	}
+	if _, err := rt.db.Conn().Exec(`UPDATE conversations SET photo=? WHERE id=?`, strings.TrimSpace(body.Photo), convID); err != nil {
+		writeJSON(w, http.StatusInternalServerError, apiError{Error: "errore update foto gruppo"})
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
