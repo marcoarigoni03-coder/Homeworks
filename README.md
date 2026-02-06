@@ -25,6 +25,7 @@ The full version can be found in the "Fantastic Coffee" repository.
 
 Other project files include:
 * `open-node.sh` starts a new (temporary) container using `node:20` image for safe and secure web frontend development (you don't want to use `node` in your system, do you?).
+	* If you prefer to use a locally installed Node.js instead, see the "Using local Node/Yarn (no open-node.sh)" sections below.
 
 ## Go vendoring
 
@@ -71,6 +72,19 @@ exit
 go build -tags webui ./cmd/webapi/
 ```
 
+### Using local Node/Yarn (no open-node.sh)
+
+Install Node.js 20.x and enable Corepack (so `yarn` is available), then:
+
+```shell
+cd webui
+corepack enable
+yarn install --immutable --immutable-cache
+yarn run build-embed
+cd ..
+go build -tags webui ./cmd/webapi/
+```
+
 ## How to run (in development mode)
 
 You can launch the backend only using:
@@ -87,11 +101,31 @@ If you want to launch the WebUI, open a new tab and launch:
 yarn run dev
 ```
 
+### Using local Node/Yarn (no open-node.sh)
+
+Install Node.js 20.x and enable Corepack, then:
+
+```shell
+cd webui
+corepack enable
+yarn install --immutable --immutable-cache
+yarn run dev
+```
+
 ## How to build for production / homework delivery
 
 ```shell
 ./open-node.sh
 # (here you're inside the container)
+yarn run build-prod
+```
+
+### Using local Node/Yarn (no open-node.sh)
+
+```shell
+cd webui
+corepack enable
+yarn install --immutable --immutable-cache
 yarn run build-prod
 ```
 

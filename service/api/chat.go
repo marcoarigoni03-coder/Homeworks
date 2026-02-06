@@ -107,7 +107,7 @@ func (rt *_router) login(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	}
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"token": token,
-		"user": userDTO{ID: uid, Username: username, DisplayName: dn, Photo: photo},
+		"user":  userDTO{ID: uid, Username: username, DisplayName: dn, Photo: photo},
 	})
 }
 

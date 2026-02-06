@@ -20,19 +20,21 @@ export default {
 			groupMembersCSV: '',
 			profileName: '',
 			profilePhoto: '',
+			profilePhotoFileName: '',
 			groupEditName: '',
 			groupEditPhoto: '',
+			groupPhotoFileName: '',
 			pollHandle: null,
 		}
 	},
-		methods: {
-			avatarPhoto(entity) {
-				if (!entity || !entity.photo) return ''
-				return entity.photo
-			},
-			api() {
-				return { headers: this.token ? { Authorization: `Bearer ${this.token}` } : {} }
-			},
+	methods: {
+		avatarPhoto(entity) {
+			if (!entity || !entity.photo) return ''
+			return entity.photo
+		},
+		api() {
+			return { headers: this.token ? { Authorization: `Bearer ${this.token}` } : {} }
+		},
 		initials(name) {
 			if (!name) return '?'
 			return name.split(' ').map(v => v[0]).join('').slice(0, 2).toUpperCase()
@@ -157,6 +159,7 @@ export default {
 				displayName: this.profileName,
 				photo: this.profilePhoto,
 			}, this.api())
+			this.profilePhotoFileName = ''
 			await this.refreshAll()
 		},
 		async updateGroup() {
@@ -164,6 +167,7 @@ export default {
 				name: this.groupEditName,
 				photo: this.groupEditPhoto,
 			}, this.api())
+			this.groupPhotoFileName = ''
 			await this.openConversation(this.selectedConversationId)
 			await this.refreshAll()
 		},
@@ -180,6 +184,34 @@ export default {
 		clearImage() {
 			this.image = ''
 			this.imageFileName = ''
+		},
+		onProfilePhotoChange(e) {
+			const file = e.target.files && e.target.files[0]
+			if (!file) return
+			this.profilePhotoFileName = file.name
+			const reader = new FileReader()
+			reader.onload = () => {
+				this.profilePhoto = typeof reader.result === 'string' ? reader.result : ''
+			}
+			reader.readAsDataURL(file)
+		},
+		clearProfilePhoto() {
+			this.profilePhoto = ''
+			this.profilePhotoFileName = ''
+		},
+		onGroupPhotoChange(e) {
+			const file = e.target.files && e.target.files[0]
+			if (!file) return
+			this.groupPhotoFileName = file.name
+			const reader = new FileReader()
+			reader.onload = () => {
+				this.groupEditPhoto = typeof reader.result === 'string' ? reader.result : ''
+			}
+			reader.readAsDataURL(file)
+		},
+		clearGroupPhoto() {
+			this.groupEditPhoto = ''
+			this.groupPhotoFileName = ''
 		},
 		replyPreview(replyToId) {
 			const ref = this.messages.find(m => m.id === replyToId)
@@ -236,11 +268,11 @@ export default {
 
 			<div class="chat-shell">
 				<aside class="left-rail">
-						<div class="me-card">
-							<div class="avatar">
-								<img v-if="avatarPhoto(me)" :src="avatarPhoto(me)" alt="Foto profilo" />
-								<span v-else>{{ initials(me?.displayName || me?.username) }}</span>
-							</div>
+					<div class="me-card">
+						<div class="avatar">
+							<img v-if="avatarPhoto(me)" :src="avatarPhoto(me)" alt="Foto profilo" />
+							<span v-else>{{ initials(me?.displayName || me?.username) }}</span>
+						</div>
 						<div>
 							<div class="me-name">{{ me?.displayName }}</div>
 							<div class="me-user">@{{ me?.username }}</div>
@@ -251,6 +283,11 @@ export default {
 						<div class="section-title">Profilo</div>
 						<input class="tx-input small" v-model="profileName" placeholder="Nuovo nome" />
 						<input class="tx-input small" v-model="profilePhoto" placeholder="URL/base64 foto" />
+						<div class="image-upload-wrap">
+							<input class="tx-input" type="file" accept="image/*" @change="onProfilePhotoChange" />
+							<small class="muted" v-if="profilePhotoFileName">{{ profilePhotoFileName }}</small>
+							<button class="tx-btn mini" v-if="profilePhoto" @click="clearProfilePhoto">Rimuovi foto</button>
+						</div>
 						<div class="stack-row">
 							<button class="tx-btn" @click="updateProfile">Aggiorna</button>
 							<button class="tx-btn tx-btn-danger" @click="logout">Logout</button>
@@ -319,7 +356,12 @@ export default {
 							</div>
 							<div class="chat-actions" v-if="selectedConversation.isGroup">
 								<input class="tx-input small" v-model="groupEditName" placeholder="Nome gruppo" />
-								<input class="tx-input small" v-model="groupEditPhoto" placeholder="Foto gruppo" />
+								<input class="tx-input small" v-model="groupEditPhoto" placeholder="URL/base64 foto gruppo" />
+								<div class="image-upload-wrap">
+									<input class="tx-input" type="file" accept="image/*" @change="onGroupPhotoChange" />
+									<small class="muted" v-if="groupPhotoFileName">{{ groupPhotoFileName }}</small>
+									<button class="tx-btn mini" v-if="groupEditPhoto" @click="clearGroupPhoto">Rimuovi foto</button>
+								</div>
 								<select class="tx-input small" @change="addMember($event.target.value)">
 									<option value="">Aggiungi membro…</option>
 									<option v-for="u in users" :key="u.id" :value="u.username">{{ u.username }}</option>
@@ -362,11 +404,11 @@ export default {
 							<div v-if="replyToId" class="replying">Stai rispondendo a #{{ replyToId }}</div>
 							<div class="composer-row">
 								<input class="tx-input" v-model="text" placeholder="Scrivi un messaggio..." />
-							<div class="image-upload-wrap">
-								<input class="tx-input" type="file" accept="image/*" @change="onImageFileChange" />
-								<small class="muted" v-if="imageFileName">{{ imageFileName }}</small>
-								<button class="tx-btn mini" v-if="image" @click="clearImage">Rimuovi immagine</button>
-							</div>
+								<div class="image-upload-wrap">
+									<input class="tx-input" type="file" accept="image/*" @change="onImageFileChange" />
+									<small class="muted" v-if="imageFileName">{{ imageFileName }}</small>
+									<button class="tx-btn mini" v-if="image" @click="clearImage">Rimuovi immagine</button>
+								</div>
 								<input class="tx-input short" v-model="reactionEmoji" placeholder="emoji" />
 								<button class="tx-btn tx-btn-primary" @click="send">Invia</button>
 							</div>
