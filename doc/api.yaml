@@ -466,7 +466,7 @@ paths:
         "404":
           description: Messaggio non trovato
 
-  components:
+components:
   securitySchemes:
     BearerAuth:
       type: http
