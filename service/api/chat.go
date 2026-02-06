@@ -160,7 +160,6 @@ func (rt *_router) updateMe(w http.ResponseWriter, r *http.Request, _ httprouter
 	rt.getMe(w, r, httprouter.Params{}, reqcontext.RequestContext{})
 }
 
-// QUESTA È UNA TUA AGGIUNTA (MANTENUTA)
 func (rt *_router) updateMyPhoto(w http.ResponseWriter, r *http.Request, _ httprouter.Params, _ reqcontext.RequestContext) {
 	u, err := rt.authUser(r)
 	if err != nil {
@@ -573,7 +572,6 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 	writeJSON(w, http.StatusCreated, map[string]int64{"messageId": id})
 }
 
-// QUESTA È UNA TUA AGGIUNTA (MANTENUTA)
 func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, _ reqcontext.RequestContext) {
 	me, err := rt.authUser(r)
 	if err != nil {
@@ -672,7 +670,6 @@ func (rt *_router) updateConversation(w http.ResponseWriter, r *http.Request, ps
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// QUESTA È UNA TUA AGGIUNTA (MANTENUTA)
 func (rt *_router) updateGroupPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params, _ reqcontext.RequestContext) {
 	me, err := rt.authUser(r)
 	if err != nil {
