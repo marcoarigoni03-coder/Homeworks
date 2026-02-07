@@ -197,6 +197,7 @@ export default {
 			const reader = new FileReader()
 			reader.onload = () => {
 				this.profilePhoto = typeof reader.result === 'string' ? reader.result : ''
+				this.profileDirty = true
 			}
 			reader.readAsDataURL(file)
 		},
