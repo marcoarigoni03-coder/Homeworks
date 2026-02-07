@@ -43,23 +43,6 @@ paths:
                 $ref: "#/components/schemas/User"
         "401":
           description: Non autorizzato
-
-  /api/me:
-    get:
-      tags: [Profile]
-      operationId: getMyProfile
-      summary: Dati profilo utente autenticato
-      security:
-        - BearerAuth: []
-      responses:
-        "200":
-          description: Profilo utente
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-        "401":
-          description: Non autorizzato
     put:
       tags: [Profile]
       operationId: setMyUserName
