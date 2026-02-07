@@ -193,6 +193,7 @@ export default {
 			const file = e.target.files && e.target.files[0]
 			if (!file) return
 			this.profilePhotoFileName = file.name
+			this.profileDirty = true
 			const reader = new FileReader()
 			reader.onload = () => {
 				this.profilePhoto = typeof reader.result === 'string' ? reader.result : ''
