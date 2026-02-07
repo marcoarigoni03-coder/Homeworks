@@ -6,6 +6,44 @@ info:
 servers:
   - url: /
 paths:
+  /api/login:
+    post:
+      tags: [Auth]
+      operationId: doLogin
+      summary: Login o registrazione utente (username-only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login eseguito
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          description: Dati non validi
+
+  /api/me:
+    get:
+      tags: [Profile]
+      operationId: getMyProfile
+      summary: Dati profilo utente autenticato
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Profilo utente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Non autorizzato
+
   /api/me:
     get:
       tags: [Profile]
