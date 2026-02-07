@@ -1,3 +1,32 @@
+openapi: 3.0.3
+info:
+  title: WASAtext API
+  version: "1.0.0"
+  description: API del progetto WASAtext.
+servers:
+  - url: /
+paths:
+  /api/login:
+    post:
+      tags: [Auth]
+      operationId: doLogin
+      summary: Login o registrazione utente (username-only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login eseguito
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          description: Dati non validi
+
   /api/me:
     get:
       tags: [Profile]
