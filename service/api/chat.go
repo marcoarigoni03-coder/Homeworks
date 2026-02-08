@@ -429,32 +429,10 @@ func (rt *_router) conversationDetail(convID, meID int64) (conversationDTO, []ms
 		}
 	}
 	if err := rows.Err(); err != nil {
-		return c, nil, err
-	}
-	return c, msgs, nil
-}
-
-func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params, _ reqcontext.RequestContext) {
-	me, err := rt.authUser(r)
-	if err != nil {
-		writeJSON(w, http.StatusUnauthorized, apiError{Error: err.Error()})
+		writeJSON(w, http.StatusInternalServerError, apiError{Error: "errore lettura messaggi"})
 		return
 	}
-	convID, _ := strconv.ParseInt(ps.ByName("id"), 10, 64)
-	if !rt.isMember(convID, me.ID) {
-		writeJSON(w, http.StatusForbidden, apiError{Error: "non sei membro del gruppo/chat"})
-		return
-	}
-	c, msgs, err := rt.conversationDetail(convID, me.ID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			writeJSON(w, http.StatusNotFound, apiError{Error: "chat non trovata"})
-			return
-		}
-		writeJSON(w, http.StatusInternalServerError, apiError{Error: "errore messaggi"})
-		return
-	}
-	writeJSON(w, http.StatusOK, conversationDetailDTO{Conversation: c, Messages: msgs})
+	writeJSON(w, http.StatusOK, map[string]interface{}{"conversation": c, "messages": msgs})
 }
 
 func (rt *_router) isMember(convID, uid int64) bool {
