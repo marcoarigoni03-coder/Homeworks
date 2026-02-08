@@ -170,12 +170,12 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateDirectRequest"
       responses:
-        "200":
+        "201":
           description: Conversazione creata o recuperata
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Conversation"
+                $ref: "#/components/schemas/ConversationDetail"
         "400":
           description: Dati non validi
         "401":
@@ -198,12 +198,12 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateGroupRequest"
       responses:
-        "200":
+        "201":
           description: Gruppo creato
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Conversation"
+                $ref: "#/components/schemas/ConversationDetail"
         "400":
           description: Dati non validi
         "401":

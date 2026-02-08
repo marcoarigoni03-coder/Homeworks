@@ -34,6 +34,11 @@ type conversationDTO struct {
 	LastMessage *msgDTO   `json:"lastMessage,omitempty"`
 }
 
+type conversationDetailDTO struct {
+	Conversation conversationDTO `json:"conversation"`
+	Messages     []msgDTO        `json:"messages"`
+}
+
 type reactionDTO struct {
 	UserID   int64  `json:"userId"`
 	Username string `json:"username"`
@@ -234,7 +239,12 @@ func (rt *_router) createDirectConversation(w http.ResponseWriter, r *http.Reque
 		writeJSON(w, http.StatusInternalServerError, apiError{Error: "errore creazione chat"})
 		return
 	}
-	writeJSON(w, http.StatusCreated, map[string]int64{"conversationId": convID})
+	c, msgs, err := rt.conversationDetail(convID, me.ID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, apiError{Error: "errore lettura chat"})
+		return
+	}
+	writeJSON(w, http.StatusCreated, conversationDetailDTO{Conversation: c, Messages: msgs})
 }
 
 func (rt *_router) findOrCreateDirect(a, b int64) (int64, error) {
@@ -290,7 +300,12 @@ func (rt *_router) createGroupConversation(w http.ResponseWriter, r *http.Reques
 			_, _ = rt.db.Conn().Exec(`INSERT OR IGNORE INTO conversation_members(conversation_id,user_id) VALUES(?,?)`, id, uid)
 		}
 	}
-	writeJSON(w, http.StatusCreated, map[string]int64{"conversationId": id})
+	c, msgs, err := rt.conversationDetail(id, me.ID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, apiError{Error: "errore lettura chat"})
+		return
+	}
+	writeJSON(w, http.StatusCreated, conversationDetailDTO{Conversation: c, Messages: msgs})
 }
 
 func (rt *_router) listConversations(w http.ResponseWriter, r *http.Request, _ httprouter.Params, _ reqcontext.RequestContext) {
@@ -376,28 +391,17 @@ func (rt *_router) lastMessage(convID int64) (msgDTO, error) {
 	return m, nil
 }
 
-func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params, _ reqcontext.RequestContext) {
-	me, err := rt.authUser(r)
-	if err != nil {
-		writeJSON(w, http.StatusUnauthorized, apiError{Error: err.Error()})
-		return
-	}
-	convID, _ := strconv.ParseInt(ps.ByName("id"), 10, 64)
-	if !rt.isMember(convID, me.ID) {
-		writeJSON(w, http.StatusForbidden, apiError{Error: "non sei membro del gruppo/chat"})
-		return
-	}
+func (rt *_router) conversationDetail(convID, meID int64) (conversationDTO, []msgDTO, error) {
 	var c conversationDTO
 	var isg int
 	if err := rt.db.Conn().QueryRow(`SELECT id,is_group,name,photo FROM conversations WHERE id=?`, convID).Scan(&c.ID, &isg, &c.Name, &c.Photo); err != nil {
-		writeJSON(w, http.StatusNotFound, apiError{Error: "chat non trovata"})
-		return
+		return c, nil, err
 	}
 	c.IsGroup = isg == 1
 	c.Members = rt.membersOf(c.ID)
 	if !c.IsGroup && len(c.Members) == 2 {
 		for _, m := range c.Members {
-			if m.ID != me.ID {
+			if m.ID != meID {
 				c.Name = m.DisplayName
 				c.Photo = m.Photo
 			}
@@ -407,8 +411,7 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 		u.id,u.username,u.display_name,u.photo
 		FROM messages m JOIN users u ON u.id=m.sender_id WHERE m.conversation_id=? ORDER BY m.id ASC`, convID)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, apiError{Error: "errore messaggi"})
-		return
+		return c, nil, err
 	}
 	defer rows.Close()
 	msgs := make([]msgDTO, 0)
@@ -701,7 +704,12 @@ func (rt *_router) updateConversation(w http.ResponseWriter, r *http.Request, ps
 		writeJSON(w, http.StatusInternalServerError, apiError{Error: fmt.Sprintf("errore update gruppo: %v", err)})
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	c, msgs, err := rt.conversationDetail(convID, me.ID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, apiError{Error: "errore lettura chat"})
+		return
+	}
+	writeJSON(w, http.StatusOK, conversationDetailDTO{Conversation: c, Messages: msgs})
 }
 
 func (rt *_router) updateGroupPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params, _ reqcontext.RequestContext) {
@@ -731,5 +739,10 @@ func (rt *_router) updateGroupPhoto(w http.ResponseWriter, r *http.Request, ps h
 		writeJSON(w, http.StatusInternalServerError, apiError{Error: "errore update foto gruppo"})
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	c, msgs, err := rt.conversationDetail(convID, me.ID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, apiError{Error: "errore lettura chat"})
+		return
+	}
+	writeJSON(w, http.StatusOK, conversationDetailDTO{Conversation: c, Messages: msgs})
 }
