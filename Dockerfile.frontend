@@ -1,7 +1,9 @@
 FROM node:lts as builder
 WORKDIR /app
+RUN corepack enable
 COPY webui webui
 WORKDIR /app/webui
+RUN corepack prepare yarn@4.5.0 --activate
 RUN yarn run build-prod
 FROM nginx:stable
 COPY --from=builder /app/webui/dist /usr/share/nginx/html

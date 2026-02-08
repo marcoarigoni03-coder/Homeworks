@@ -5,12 +5,40 @@ info:
   description: API del progetto WASAtext.
 servers:
   - url: /
+tags:
+  - name: Auth
+    description: Autenticazione e gestione sessione.
+  - name: Health
+    description: Endpoint di verifica stato del servizio.
+  - name: Profile
+    description: Gestione del profilo utente autenticato.
+  - name: Users
+    description: Operazioni sugli utenti registrati.
+  - name: Conversations
+    description: Gestione delle conversazioni e dei gruppi.
+  - name: Messages
+    description: Operazioni sui messaggi delle conversazioni.
+  - name: Reactions
+    description: Gestione delle reazioni ai messaggi.
 paths:
+  /liveness:
+    get:
+      tags: [Health]
+      operationId: getLiveness
+      summary: Verifica stato servizio
+      description: Controlla la connettività al database e lo stato dell'API.
+      responses:
+        "200":
+          description: Servizio operativo
+        "500":
+          description: Servizio non disponibile
+
   /api/login:
     post:
       tags: [Auth]
       operationId: doLogin
       summary: Login o registrazione utente (username-only)
+      description: Autentica un utente tramite username e crea una nuova sessione.
       requestBody:
         required: true
         content:
@@ -27,11 +55,22 @@ paths:
         "400":
           description: Dati non validi
 
+  /api/logout:
+    post:
+      tags: [Auth]
+      operationId: doLogout
+      summary: Termina la sessione corrente
+      description: Elimina la sessione corrente. Se non c'è una sessione attiva risponde comunque con successo.
+      responses:
+        "204":
+          description: Logout eseguito
+
   /api/me:
     get:
       tags: [Profile]
       operationId: getMyProfile
       summary: Dati profilo utente autenticato
+      description: Restituisce il profilo dell'utente autenticato.
       security:
         - BearerAuth: []
       responses:
@@ -47,6 +86,7 @@ paths:
       tags: [Profile]
       operationId: setMyUserName
       summary: Aggiorna nome profilo
+      description: Aggiorna il display name dell'utente autenticato.
       security:
         - BearerAuth: []
       requestBody:
@@ -74,6 +114,7 @@ paths:
       tags: [Profile]
       operationId: setMyPhoto
       summary: Aggiorna la foto profilo
+      description: Aggiorna la foto profilo dell'utente autenticato.
       security:
         - BearerAuth: []
       requestBody:
@@ -99,6 +140,7 @@ paths:
       tags: [Users]
       operationId: getUsers
       summary: Lista utenti
+      description: Restituisce la lista di utenti registrati.
       security:
         - BearerAuth: []
       responses:
@@ -108,6 +150,8 @@ paths:
             application/json:
               schema:
                 type: array
+                minItems: 0
+                maxItems: 1000
                 items:
                   $ref: "#/components/schemas/User"
         "401":
@@ -118,6 +162,7 @@ paths:
       tags: [Conversations]
       operationId: getMyConversations
       summary: Lista conversazioni dell'utente
+      description: Restituisce tutte le conversazioni a cui partecipa l'utente.
       security:
         - BearerAuth: []
       responses:
@@ -127,6 +172,8 @@ paths:
             application/json:
               schema:
                 type: array
+                minItems: 0
+                maxItems: 1000
                 items:
                   $ref: "#/components/schemas/Conversation"
         "401":
@@ -137,6 +184,7 @@ paths:
       tags: [Conversations]
       operationId: createDirectConversation
       summary: Crea o recupera chat diretta
+      description: Crea una conversazione diretta con un utente o la recupera se esiste.
       security:
         - BearerAuth: []
       requestBody:
@@ -146,12 +194,12 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateDirectRequest"
       responses:
-        "200":
+        "201":
           description: Conversazione creata o recuperata
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Conversation"
+                $ref: "#/components/schemas/ConversationDetail"
         "400":
           description: Dati non validi
         "401":
@@ -164,6 +212,7 @@ paths:
       tags: [Conversations]
       operationId: createGroupConversation
       summary: Crea un gruppo
+      description: Crea una nuova conversazione di gruppo.
       security:
         - BearerAuth: []
       requestBody:
@@ -173,26 +222,27 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateGroupRequest"
       responses:
-        "200":
+        "201":
           description: Gruppo creato
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Conversation"
+                $ref: "#/components/schemas/ConversationDetail"
         "400":
           description: Dati non validi
         "401":
           description: Non autorizzato
 
   /api/conversation/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ConversationId"
     get:
       tags: [Conversations]
       operationId: getConversation
       summary: Dettaglio conversazione e messaggi
+      description: Restituisce i dettagli della conversazione e i messaggi associati.
       security:
         - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ConversationId"
       responses:
         "200":
           description: Conversazione e messaggi
@@ -210,10 +260,9 @@ paths:
       tags: [Conversations]
       operationId: setGroupName
       summary: Aggiorna nome/immagine gruppo
+      description: Aggiorna il nome o l'immagine della conversazione di gruppo.
       security:
         - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ConversationId"
       requestBody:
         required: true
         content:
@@ -226,7 +275,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Conversation"
+                $ref: "#/components/schemas/ConversationDetail"
         "401":
           description: Non autorizzato
         "403":
@@ -237,6 +286,7 @@ paths:
       tags: [Conversations]
       operationId: setGroupPhoto
       summary: Aggiorna immagine del gruppo
+      description: Aggiorna la foto della conversazione di gruppo.
       security:
         - BearerAuth: []
       parameters:
@@ -253,7 +303,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Conversation"
+                $ref: "#/components/schemas/ConversationDetail"
         "401":
           description: Non autorizzato
         "403":
@@ -264,6 +314,7 @@ paths:
       tags: [Conversations]
       operationId: addToGroup
       summary: Aggiungi membro al gruppo
+      description: Aggiunge un utente come membro della conversazione di gruppo.
       security:
         - BearerAuth: []
       parameters:
@@ -291,6 +342,7 @@ paths:
       tags: [Conversations]
       operationId: leaveGroup
       summary: Esci dal gruppo
+      description: Rimuove l'utente autenticato dal gruppo.
       security:
         - BearerAuth: []
       parameters:
@@ -308,6 +360,7 @@ paths:
       tags: [Messages]
       operationId: sendMessage
       summary: Invia un messaggio
+      description: Invia un messaggio di testo o un contenuto multimediale nella conversazione.
       security:
         - BearerAuth: []
       parameters:
@@ -337,6 +390,7 @@ paths:
       tags: [Messages]
       operationId: setMessageRead
       summary: Segna messaggio come letto
+      description: Imposta lo stato di lettura del messaggio per l'utente autenticato.
       security:
         - BearerAuth: []
       parameters:
@@ -352,14 +406,15 @@ paths:
           description: Messaggio non trovato
 
   /api/messages/{id}/reaction:
+    parameters:
+      - $ref: "#/components/parameters/MessageId"
     post:
       tags: [Reactions]
       operationId: commentMessage
       summary: Aggiungi o aggiorna reazione
+      description: Aggiunge o aggiorna la reazione dell'utente al messaggio.
       security:
         - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/MessageId"
       requestBody:
         required: true
         content:
@@ -379,10 +434,9 @@ paths:
       tags: [Reactions]
       operationId: uncommentMessage
       summary: Rimuovi reazione
+      description: Elimina la reazione dell'utente dal messaggio.
       security:
         - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/MessageId"
       responses:
         "204":
           description: Reazione rimossa
@@ -394,6 +448,7 @@ paths:
       tags: [Messages]
       operationId: forwardMessage
       summary: Inoltra un messaggio
+      description: Inoltra un messaggio in un'altra conversazione.
       security:
         - BearerAuth: []
       parameters:
@@ -425,6 +480,7 @@ paths:
       tags: [Messages]
       operationId: deleteMessage
       summary: Elimina un messaggio inviato
+      description: Rimuove un messaggio inviato dall'utente autenticato.
       security:
         - BearerAuth: []
       parameters:
@@ -451,6 +507,7 @@ components:
       name: id
       in: path
       required: true
+      description: Identificativo della conversazione.
       schema:
         type: integer
         format: int64
@@ -458,6 +515,7 @@ components:
       name: id
       in: path
       required: true
+      description: Identificativo del messaggio.
       schema:
         type: integer
         format: int64
@@ -465,190 +523,318 @@ components:
   schemas:
     User:
       type: object
+      description: Profilo di un utente registrato.
       properties:
         id:
           type: integer
           format: int64
+          description: Identificativo univoco dell'utente.
         username:
           type: string
+          description: Username univoco.
+          minLength: 3
+          maxLength: 20
+          pattern: "^[a-zA-Z0-9_]+$"
         displayName:
           type: string
+          description: Nome visualizzato nel profilo.
+          minLength: 3
+          maxLength: 50
+          pattern: "^.{3,50}$"
         photo:
           type: string
+          description: URL della foto profilo.
+          minLength: 1
+          maxLength: 2048
+          pattern: "^https?://"
       required: [id, username, displayName, photo]
 
     LoginRequest:
       type: object
+      description: Dati necessari per il login.
       properties:
         username:
           type: string
+          description: Username per autenticazione.
           minLength: 3
+          maxLength: 20
+          pattern: "^[a-zA-Z0-9_]+$"
       required: [username]
 
     LoginResponse:
       type: object
+      description: Token e profilo utente dopo il login.
       properties:
         token:
           type: string
+          description: Token bearer di sessione.
+          minLength: 36
+          maxLength: 36
+          pattern: "^[0-9a-fA-F-]{36}$"
         user:
           $ref: "#/components/schemas/User"
       required: [token, user]
 
     UpdateProfileRequest:
       type: object
+      description: Dati per aggiornare il profilo.
       properties:
         displayName:
           type: string
+          description: Nuovo nome visualizzato.
+          minLength: 3
+          maxLength: 50
+          pattern: "^.{3,50}$"
       required: [displayName]
 
     UpdatePhotoRequest:
       type: object
+      description: Dati per aggiornare la foto profilo.
       properties:
         photo:
           type: string
+          description: URL della nuova foto profilo.
+          minLength: 1
+          maxLength: 2048
+          pattern: "^https?://"
       required: [photo]
 
     Conversation:
       type: object
+      description: Conversazione diretta o di gruppo.
       properties:
         id:
           type: integer
           format: int64
+          description: Identificativo della conversazione.
         isGroup:
           type: boolean
+          description: Indica se si tratta di un gruppo.
         name:
           type: string
+          description: Nome della conversazione.
+          minLength: 1
+          maxLength: 100
+          pattern: "^.{1,100}$"
         photo:
           type: string
+          description: URL dell'immagine della conversazione.
+          minLength: 1
+          maxLength: 2048
+          pattern: "^https?://"
         members:
           type: array
+          description: Membri della conversazione.
+          minItems: 1
+          maxItems: 1000
           items:
             $ref: "#/components/schemas/User"
       required: [id, isGroup, name, photo, members]
 
     ConversationDetail:
       type: object
+      description: Dettaglio conversazione con lista messaggi.
       properties:
         conversation:
           $ref: "#/components/schemas/Conversation"
         messages:
           type: array
+          description: Lista di messaggi della conversazione.
+          minItems: 0
+          maxItems: 2000
           items:
             $ref: "#/components/schemas/Message"
       required: [conversation, messages]
 
     CreateDirectRequest:
       type: object
+      description: Dati per creare una conversazione diretta.
       properties:
         username:
           type: string
+          description: Username dell'utente destinatario.
+          minLength: 3
+          maxLength: 20
+          pattern: "^[a-zA-Z0-9_]+$"
       required: [username]
 
     CreateGroupRequest:
       type: object
+      description: Dati per creare una conversazione di gruppo.
       properties:
         name:
           type: string
+          description: Nome del gruppo.
+          minLength: 1
+          maxLength: 100
+          pattern: "^.{1,100}$"
         members:
           type: array
+          description: Username dei membri iniziali.
+          minItems: 1
+          maxItems: 100
           items:
             type: string
+            minLength: 3
+            maxLength: 20
+            pattern: "^[a-zA-Z0-9_]+$"
       required: [name, members]
 
     UpdateConversationRequest:
       type: object
+      description: Dati per aggiornare una conversazione di gruppo.
       properties:
         name:
           type: string
+          description: Nuovo nome del gruppo.
+          minLength: 1
+          maxLength: 100
+          pattern: "^.{1,100}$"
         photo:
           type: string
+          description: Nuova immagine del gruppo.
+          minLength: 1
+          maxLength: 2048
+          pattern: "^https?://"
       required: [name]
 
     AddMemberRequest:
       type: object
+      description: Dati per aggiungere un membro al gruppo.
       properties:
         username:
           type: string
+          description: Username dell'utente da aggiungere.
+          minLength: 3
+          maxLength: 20
+          pattern: "^[a-zA-Z0-9_]+$"
       required: [username]
 
     SendMessageRequest:
       type: object
+      description: Dati per inviare un messaggio.
       properties:
         text:
           type: string
+          description: Contenuto testuale del messaggio.
+          minLength: 1
+          maxLength: 2000
+          pattern: "^.{1,2000}$"
         image:
           type: string
+          description: URL dell'immagine allegata.
+          minLength: 1
+          maxLength: 2048
+          pattern: "^https?://"
         replyToId:
           type: integer
           format: int64
-      required: []
+          description: Identificativo del messaggio a cui si risponde.
 
     SendMessageResponse:
       type: object
+      description: Risposta dopo la creazione di un messaggio.
       properties:
         messageId:
           type: integer
           format: int64
+          description: Identificativo del messaggio creato.
       required: [messageId]
 
     ForwardMessageRequest:
       type: object
+      description: Dati per inoltrare un messaggio.
       properties:
         toConversationId:
           type: integer
           format: int64
+          description: Identificativo della conversazione di destinazione.
       required: [toConversationId]
 
     Message:
       type: object
+      description: Messaggio presente in una conversazione.
       properties:
         id:
           type: integer
           format: int64
+          description: Identificativo del messaggio.
         conversationId:
           type: integer
           format: int64
+          description: Identificativo della conversazione di appartenenza.
         text:
           type: string
+          description: Contenuto testuale del messaggio.
+          minLength: 1
+          maxLength: 2000
+          pattern: "^.{1,2000}$"
         image:
           type: string
+          description: URL dell'immagine allegata.
+          minLength: 1
+          maxLength: 2048
+          pattern: "^https?://"
         replyToId:
           type: integer
           format: int64
-          nullable: true
+          description: Identificativo del messaggio a cui si risponde.
         forwarded:
           type: boolean
+          description: Indica se il messaggio è stato inoltrato.
         createdAt:
           type: string
           format: date-time
+          description: Data e ora di creazione del messaggio.
         sender:
           $ref: "#/components/schemas/User"
         readBy:
           type: array
+          description: Elenco degli utenti che hanno letto il messaggio.
+          minItems: 0
+          maxItems: 1000
           items:
             type: integer
             format: int64
         reactions:
           type: array
+          description: Reazioni associate al messaggio.
+          minItems: 0
+          maxItems: 1000
           items:
             $ref: "#/components/schemas/Reaction"
       required: [id, conversationId, text, image, forwarded, createdAt, sender, readBy, reactions]
 
     ReactionRequest:
       type: object
+      description: Dati per aggiungere o aggiornare una reazione.
       properties:
         emoji:
           type: string
+          description: Emoji della reazione.
+          minLength: 1
+          maxLength: 10
+          pattern: "^.{1,10}$"
       required: [emoji]
 
     Reaction:
       type: object
+      description: Reazione ad un messaggio.
       properties:
         userId:
           type: integer
           format: int64
+          description: Identificativo dell'utente.
         username:
           type: string
+          description: Username dell'utente.
+          minLength: 3
+          maxLength: 20
+          pattern: "^[a-zA-Z0-9_]+$"
         emoji:
           type: string
+          description: Emoji associata alla reazione.
+          minLength: 1
+          maxLength: 10
+          pattern: "^.{1,10}$"
       required: [userId, username, emoji]
