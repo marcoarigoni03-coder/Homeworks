@@ -8,8 +8,6 @@ servers:
 tags:
   - name: Auth
     description: Autenticazione e gestione sessione.
-  - name: Health
-    description: Endpoint di verifica stato del servizio.
   - name: Profile
     description: Gestione del profilo utente autenticato.
   - name: Users
