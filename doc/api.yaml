@@ -19,6 +19,18 @@ tags:
   - name: Reactions
     description: Gestione delle reazioni ai messaggi.
 paths:
+  /liveness:
+    get:
+      tags: [Health]
+      operationId: getLiveness
+      summary: Verifica stato servizio
+      description: Controlla la connettività al database e lo stato dell'API.
+      responses:
+        "200":
+          description: Servizio operativo
+        "500":
+          description: Servizio non disponibile
+
   /api/login:
     post:
       tags: [Auth]
@@ -40,6 +52,16 @@ paths:
                 $ref: "#/components/schemas/LoginResponse"
         "400":
           description: Dati non validi
+
+  /api/logout:
+    post:
+      tags: [Auth]
+      operationId: doLogout
+      summary: Termina la sessione corrente
+      description: Elimina la sessione corrente. Se non c'è una sessione attiva risponde comunque con successo.
+      responses:
+        "204":
+          description: Logout eseguito
 
   /api/me:
     get:
