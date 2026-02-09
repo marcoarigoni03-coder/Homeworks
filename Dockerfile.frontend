@@ -6,8 +6,7 @@ WORKDIR /app/webui
 RUN corepack prepare yarn@4.5.0 --activate
 RUN yarn run build-prod
 FROM nginx:stable
-RUN mkdir -p /var/cache/nginx /var/run /var/log/nginx /run \
-    && chown -R 1000:1000 /var/cache/nginx /var/run /var/log/nginx /run /etc/nginx/conf.d \
-    && sed -i 's|^pid .*|pid /tmp/nginx.pid;|' /etc/nginx/nginx.conf
+RUN mkdir -p /var/cache/nginx /var/run /var/log/nginx \
+    && chown -R 1000:1000 /var/cache/nginx /var/run /var/log/nginx /etc/nginx/conf.d
 USER 1000
 COPY --from=builder /app/webui/dist /usr/share/nginx/html
