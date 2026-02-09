@@ -158,13 +158,18 @@ export default {
 			await this.openConversation(this.selectedConversationId)
 		},
 		async updateProfile() {
-			await this.$axios.put('/api/me', {
-				displayName: this.profileName,
-				photo: this.profilePhoto,
-			}, this.api())
-			this.profilePhotoFileName = ''
-			this.profileDirty = false
-			await this.refreshAll()
+			this.errormsg = null
+			try {
+				await this.$axios.put('/api/me', {
+					displayName: this.profileName,
+					photo: this.profilePhoto,
+				}, this.api())
+				this.profilePhotoFileName = ''
+				this.profileDirty = false
+				await this.refreshAll()
+			} catch (e) {
+				this.errormsg = e.response?.data?.error || e.toString()
+			}
 		},
 		async updateGroup() {
 			await this.$axios.put(`/api/conversation/${this.selectedConversationId}`, {
@@ -408,7 +413,7 @@ export default {
 						</section>
 
 						<footer class="composer">
-							<div v-if="replyToId" class="replying">Stai rispondendo a #{{ replyToId }}</div>
+							<div v-if="replyToId" class="replying">Stai rispondendo a {{ replyPreview(replyToId) }}</div>
 							<div class="composer-row">
 								<input class="tx-input" v-model="text" placeholder="Scrivi un messaggio..." />
 								<div class="image-upload-wrap">
