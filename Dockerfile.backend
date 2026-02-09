@@ -1,8 +1,5 @@
 FROM golang:1.19.1 AS builder
 WORKDIR /src/
-ENV GOFLAGS=-mod=vendor
-COPY go.mod go.sum ./
-COPY vendor ./vendor
 COPY . .
 RUN go build -o /app/webapi ./cmd/webapi
 FROM debian:bullseye
