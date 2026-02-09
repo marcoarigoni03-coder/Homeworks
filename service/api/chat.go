@@ -352,6 +352,29 @@ func (rt *_router) listConversations(w http.ResponseWriter, r *http.Request, _ h
 	writeJSON(w, http.StatusOK, out)
 }
 
+func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params, _ reqcontext.RequestContext) {
+	me, err := rt.authUser(r)
+	if err != nil {
+		writeJSON(w, http.StatusUnauthorized, apiError{Error: err.Error()})
+		return
+	}
+	convID, _ := strconv.ParseInt(ps.ByName("id"), 10, 64)
+	if !rt.conversationExists(convID) {
+		writeJSON(w, http.StatusNotFound, apiError{Error: "conversazione non trovata"})
+		return
+	}
+	if !rt.isMember(convID, me.ID) {
+		writeJSON(w, http.StatusForbidden, apiError{Error: "non sei membro"})
+		return
+	}
+	c, msgs, err := rt.conversationDetail(convID, me.ID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, apiError{Error: "errore lettura chat"})
+		return
+	}
+	writeJSON(w, http.StatusOK, conversationDetailDTO{Conversation: c, Messages: msgs})
+}
+
 func (rt *_router) membersOf(convID int64) []userDTO {
 	rows, err := rt.db.Conn().Query(`SELECT u.id,u.username,u.display_name,u.photo
 		FROM users u JOIN conversation_members cm ON cm.user_id=u.id
@@ -429,15 +452,22 @@ func (rt *_router) conversationDetail(convID, meID int64) (conversationDTO, []ms
 		}
 	}
 	if err := rows.Err(); err != nil {
-		writeJSON(w, http.StatusInternalServerError, apiError{Error: "errore lettura messaggi"})
-		return
+		return c, nil, err
 	}
-	writeJSON(w, http.StatusOK, map[string]interface{}{"conversation": c, "messages": msgs})
+	return c, msgs, nil
 }
 
 func (rt *_router) isMember(convID, uid int64) bool {
 	var c int
 	_ = rt.db.Conn().QueryRow(`SELECT COUNT(1) FROM conversation_members WHERE conversation_id=? AND user_id=?`, convID, uid).Scan(&c)
+	return c > 0
+}
+
+func (rt *_router) conversationExists(convID int64) bool {
+	var c int
+	if err := rt.db.Conn().QueryRow(`SELECT COUNT(1) FROM conversations WHERE id=?`, convID).Scan(&c); err != nil {
+		return false
+	}
 	return c > 0
 }
 
@@ -448,6 +478,10 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 	convID, _ := strconv.ParseInt(ps.ByName("id"), 10, 64)
+	if !rt.conversationExists(convID) {
+		writeJSON(w, http.StatusNotFound, apiError{Error: "conversazione non trovata"})
+		return
+	}
 	if !rt.isMember(convID, me.ID) {
 		writeJSON(w, http.StatusForbidden, apiError{Error: "non sei membro"})
 		return
@@ -639,6 +673,10 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 	convID, _ := strconv.ParseInt(ps.ByName("id"), 10, 64)
+	if !rt.conversationExists(convID) {
+		writeJSON(w, http.StatusNotFound, apiError{Error: "conversazione non trovata"})
+		return
+	}
 	if !rt.isMember(convID, me.ID) {
 		writeJSON(w, http.StatusForbidden, apiError{Error: "non sei membro"})
 		return
@@ -671,6 +709,10 @@ func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 	convID, _ := strconv.ParseInt(ps.ByName("id"), 10, 64)
+	if !rt.conversationExists(convID) {
+		writeJSON(w, http.StatusNotFound, apiError{Error: "conversazione non trovata"})
+		return
+	}
 	_, _ = rt.db.Conn().Exec(`DELETE FROM conversation_members WHERE conversation_id=? AND user_id=?`, convID, me.ID)
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -682,6 +724,10 @@ func (rt *_router) updateConversation(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 	convID, _ := strconv.ParseInt(ps.ByName("id"), 10, 64)
+	if !rt.conversationExists(convID) {
+		writeJSON(w, http.StatusNotFound, apiError{Error: "conversazione non trovata"})
+		return
+	}
 	if !rt.isMember(convID, me.ID) {
 		writeJSON(w, http.StatusForbidden, apiError{Error: "non sei membro"})
 		return
@@ -719,6 +765,10 @@ func (rt *_router) updateGroupPhoto(w http.ResponseWriter, r *http.Request, ps h
 		return
 	}
 	convID, _ := strconv.ParseInt(ps.ByName("id"), 10, 64)
+	if !rt.conversationExists(convID) {
+		writeJSON(w, http.StatusNotFound, apiError{Error: "conversazione non trovata"})
+		return
+	}
 	if !rt.isMember(convID, me.ID) {
 		writeJSON(w, http.StatusForbidden, apiError{Error: "non sei membro"})
 		return

@@ -28,8 +28,16 @@ paths:
       responses:
         "200":
           description: Servizio operativo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
         "500":
           description: Servizio non disponibile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /api/login:
     post:
@@ -52,6 +60,10 @@ paths:
                 $ref: "#/components/schemas/LoginResponse"
         "400":
           description: Dati non validi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /api/logout:
     post:
@@ -80,6 +92,10 @@ paths:
                 $ref: "#/components/schemas/User"
         "401":
           description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
     put:
       tags: [Profile]
       operationId: setMyUserName
@@ -102,10 +118,22 @@ paths:
                 $ref: "#/components/schemas/User"
         "400":
           description: Dati non validi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "401":
           description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "409":
           description: Username/DisplayName già in uso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /api/me/photo:
     put:
@@ -130,8 +158,16 @@ paths:
                 $ref: "#/components/schemas/User"
         "400":
           description: Dati non validi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "401":
           description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /api/users:
     get:
@@ -154,6 +190,10 @@ paths:
                   $ref: "#/components/schemas/User"
         "401":
           description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /api/conversations:
     get:
@@ -176,6 +216,10 @@ paths:
                   $ref: "#/components/schemas/Conversation"
         "401":
           description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /api/conversations/direct:
     post:
@@ -200,10 +244,22 @@ paths:
                 $ref: "#/components/schemas/ConversationDetail"
         "400":
           description: Dati non validi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "401":
           description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "404":
           description: Utente non trovato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /api/conversations/group:
     post:
@@ -228,8 +284,16 @@ paths:
                 $ref: "#/components/schemas/ConversationDetail"
         "400":
           description: Dati non validi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "401":
           description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /api/conversation/{id}:
     parameters:
@@ -250,10 +314,22 @@ paths:
                 $ref: "#/components/schemas/ConversationDetail"
         "401":
           description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "403":
           description: Non membro
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "404":
           description: Conversazione non trovata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
     put:
       tags: [Conversations]
       operationId: setGroupName
@@ -276,8 +352,16 @@ paths:
                 $ref: "#/components/schemas/ConversationDetail"
         "401":
           description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "403":
           description: Non membro
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /api/conversation/{id}/photo:
     put:
@@ -304,8 +388,16 @@ paths:
                 $ref: "#/components/schemas/ConversationDetail"
         "401":
           description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "403":
           description: Non membro
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /api/conversation/{id}/add:
     post:
@@ -328,12 +420,28 @@ paths:
           description: Membro aggiunto
         "400":
           description: Dati non validi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "401":
           description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "403":
           description: Non membro
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "404":
           description: Utente non trovato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /api/conversation/{id}/leave:
     post:
@@ -350,8 +458,16 @@ paths:
           description: Uscita completata
         "401":
           description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "403":
           description: Non membro
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /api/conversation/{id}/messages:
     post:
@@ -378,10 +494,22 @@ paths:
                 $ref: "#/components/schemas/SendMessageResponse"
         "400":
           description: Dati non validi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "401":
           description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "403":
           description: Non membro
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /api/messages/{id}/read:
     post:
@@ -398,10 +526,22 @@ paths:
           description: Letto
         "401":
           description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "403":
           description: Non membro
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "404":
           description: Messaggio non trovato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /api/messages/{id}/reaction:
     parameters:
@@ -424,10 +564,22 @@ paths:
           description: Reazione salvata
         "400":
           description: Dati non validi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "401":
           description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "403":
           description: Non membro
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
     delete:
       tags: [Reactions]
       operationId: uncommentMessage
@@ -440,6 +592,10 @@ paths:
           description: Reazione rimossa
         "401":
           description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /api/messages/{id}/forward:
     post:
@@ -466,12 +622,28 @@ paths:
                 $ref: "#/components/schemas/SendMessageResponse"
         "400":
           description: Dati non validi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "401":
           description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "403":
           description: Non membro
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "404":
           description: Messaggio non trovato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /api/messages/{id}:
     delete:
@@ -488,10 +660,22 @@ paths:
           description: Messaggio eliminato
         "401":
           description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "403":
           description: Non autorizzato a eliminare
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "404":
           description: Messaggio non trovato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
 components:
   securitySchemes:
@@ -519,6 +703,24 @@ components:
         format: int64
 
   schemas:
+    StatusResponse:
+      type: object
+      description: Stato sintetico del servizio.
+      properties:
+        status:
+          type: string
+          description: Stato corrente del servizio.
+      required: [status]
+
+    ApiError:
+      type: object
+      description: Messaggio di errore standard.
+      properties:
+        error:
+          type: string
+          description: Descrizione dell'errore.
+      required: [error]
+
     User:
       type: object
       description: Profilo di un utente registrato.
