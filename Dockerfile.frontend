@@ -2,6 +2,7 @@ FROM node:lts as builder
 WORKDIR /app
 COPY webui webui
 WORKDIR /app/webui
+RUN yarn install --immutable
 RUN yarn run build-prod
 FROM nginx:stable
 COPY --from=builder /app/webui/dist /usr/share/nginx/html
